@@ -1,3 +1,4 @@
+
 ANSIBLE_GROUPS = {
   "master" => ["node1"],
   "nodes" => ["node2", "node3", "node4"],

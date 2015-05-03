@@ -1,0 +1,17 @@
+{
+    "id": "jenkins-master", 
+    "container": {
+      "docker": {
+          "image": "pellegrino/jenkins-pipeline-generator",
+          "network": "BRIDGE",
+          "portMappings": [
+              { "containerPort": 8080, "hostPort": 0, "protocol": "tcp" }
+          ]
+        }
+    },
+    "type": "DOCKER",
+    "cpus": 1,
+    "mem": 512,
+    "disk": 100,
+    "instances": 1
+}

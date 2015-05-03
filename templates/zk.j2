@@ -1,1 +1,1 @@
-{{ zookeeper_url }}
+zk://{{ groups.master | join(':' + "2181" + ',') }}:{{ "2181" }}/mesos

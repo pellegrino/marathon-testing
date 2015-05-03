@@ -1,7 +1,0 @@
----
-mesos_cluster_name: "Cluster01"
-mesos_quorum_count: "3"
-zookeeper_client_port: "2181"
-zookeeper_leader_port: "2888"
-zookeeper_election_port: "3888"
-zookeeper_url: "zk://{{ groups.master | join(':' + zookeeper_client_port + ',') }}:{{ zookeeper_client_port }}/mesos"

@@ -31,10 +31,8 @@
       template: src=templates/zookeeper_myid.j2 dest=/var/lib/zookeeper/myid owner=zookeeper group=zookeeper
     - name: configure zookeeper url
       template: src=templates/zoo.cfg.j2 dest=/etc/zookeeper/conf/zoo.cfg owner=zookeeper group=zookeeper
-      tags: zookeeper
     - name: configure mesos zookeeper nodes
-      template: src=templates/zk.j2 dest=/etc/mesos/zk owner=zookeeper group=zookeeper
-      tags: zookeeper
+      template: src=templates/zk.j2 dest=/etc/mesos/zk
     - name: Assures mesos config directories exists
       file: path={{item}} state=directory
       with_items:
@@ -48,8 +46,7 @@
         - /etc/mesos-master/hostname
         - /etc/marathon/hostname
     - name: configure mesos master quorum
-      template: src=templates/quorum.j2 dest=/etc/mesos-master/quorum owner=zookeeper group=zookeeper 
-      tags: zookeeper
+      template: src=templates/quorum.j2 dest=/etc/mesos-master/quorum
     - name: configure mesos to use containers
       shell: echo 'docker,mesos' | sudo tee /etc/mesos-slave/containerizers
     - name: start up mesos, marathon, chronos and zookeeper services 
@@ -103,10 +100,8 @@
         - lxc-docker
     - name: configure zookeeper quorum
       template: src=templates/zoo.cfg.j2 dest=/etc/zookeeper/conf/zoo.cfg owner=zookeeper group=zookeeper
-      tags: zookeeper
     - name: configure mesos zookeeper nodes
       template: src=templates/zk.j2 dest=/etc/mesos/zk owner=zookeeper group=zookeeper
-      tags: zookeeper
     - name: Assures {{item}} dir exists
       file: path=/etc/mesos-slave state=directory
       with_items:

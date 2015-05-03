@@ -1,10 +1,10 @@
---- 
+---
 - hosts: master
   remote_user: vagrant
   sudo: yes
   tasks:
     - name: update the hosts file
-      template: src=vm-install/hosts.j2 dest=/etc/hosts
+      template: src=templates/hosts.j2 dest=/etc/hosts
     - name: install the mesosphere yum repo
       yum: name=http://repos.mesosphere.io/el/7/noarch/RPMS/mesosphere-el-repo-7-1.noarch.rpm state=present
     - name: install zookeeper yum repo
@@ -12,7 +12,7 @@
     - name: install zookeeper
       yum: pkg=zookeeper,zookeeper-server state=latest
     - name: configure zookeeper id
-      shell: sudo -u zookeeper zookeeper-server-initialize --myid=1 creates=/var/lib/zookeeper
+      shell: sudo -u zookeeper zookeeper-server-initialize --myid=1 creates=/var/lib/zookeeper/myid
     - name: install mesos, marathon, chronos and docker packages
       yum: pkg=device-mapper-event-libs,mesos,marathon,chronos,docker state=latest
     - name: configure mesos to use containers
@@ -32,16 +32,16 @@
     - name: install go and dns tools
       yum: pkg=golang,git,bind-utils state=latest
     - name: build mesos-dns
-      shell: sudo -u vagrant sh /vagrant/installdns.sh
-    - name: install outyet
-      shell: sudo docker load --input=/vagrant/outyet.tar.gz
+      shell: sudo -u vagrant sh /vagrant/mesos-dns/installdns.sh
+    - name: start marathon services
+      shell: cd /vagrant/marathon && make deploy
 
 - hosts: nodes
   remote_user: vagrant
   sudo: yes
   tasks:
       - name: update the hosts file
-        template: src=vm-install/hosts.j2 dest=/etc/hosts
+        template: src=templates/hosts.j2 dest=/etc/hosts
       - name: install the mesosphere yum repo
         yum: name=http://repos.mesosphere.io/el/7/noarch/RPMS/mesosphere-el-repo-7-1.noarch.rpm state=present
       - name: install the mesos and docker packages
@@ -54,5 +54,3 @@
         service: name=mesos-slave state=started enabled=yes
       - name: start docker
         service: name=docker state=started enabled=yes
-      - name: install outyet
-        shell: sudo docker load --input=/vagrant/outyet.tar.gz

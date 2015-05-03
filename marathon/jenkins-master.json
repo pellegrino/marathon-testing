@@ -10,8 +10,8 @@
         }
     },
     "type": "DOCKER",
-    "cpus": 1,
-    "mem": 512,
+    "cpus": 3,
+    "mem": 1024,
     "disk": 100,
     "instances": 1
 }

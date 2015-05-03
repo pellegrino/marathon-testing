@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-MARATHON=http://192.168.33.10:8080
+MARATHON=http://mesos1.dev.s-cloud.net:8080
 
 for i in *.json
 do

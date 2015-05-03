@@ -1,0 +1,9 @@
+[master]
+mesos1.dev.s-cloud.net zookeeper_myid=1
+mesos2.dev.s-cloud.net zookeeper_myid=2
+mesos3.dev.s-cloud.net zookeeper_myid=3
+mesos4.dev.s-cloud.net zookeeper_myid=4
+mesos5.dev.s-cloud.net zookeeper_myid=5
+
+[nodes]
+mesos6.dev.s-cloud.net

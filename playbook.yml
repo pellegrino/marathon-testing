@@ -1,64 +1,134 @@
 ---
 - hosts: master
-  remote_user: vagrant
+  remote_user: admin
   sudo: yes
   tasks:
-    - name: update the hosts file
-      template: src=templates/hosts.j2 dest=/etc/hosts
-    - name: install the mesosphere yum repo
-      yum: name=http://repos.mesosphere.io/el/7/noarch/RPMS/mesosphere-el-repo-7-1.noarch.rpm state=present
-    - name: install zookeeper yum repo
-      yum: name=http://archive.cloudera.com/cdh4/one-click-install/redhat/6/x86_64/cloudera-cdh-4-0.x86_64.rpm state=present
-    - name: install zookeeper
-      yum: pkg=zookeeper,zookeeper-server state=latest
+    - name: install mesosphere apt key
+      apt_key: id=E56151BF  keyserver=keyserver.ubuntu.com state=present
+    - name: install docker apt key 
+      apt_key: id=36A1D7869245C8950F966E92D8576A8BA88D21E9 keyserver=keyserver.ubuntu.com state=present
+    - name: install the mesosphere and docker repos apt repo
+      apt_repository: repo='deb {{item}}' state=present
+      with_items:
+        - http://repos.mesosphere.io/debian wheezy main
+        - http://get.docker.io/ubuntu docker main
+    - name: install go and dns tools
+      apt: name={{item}} state=latest
+      with_items:
+        - golang
+        - git
+        - dnsutils
+        - build-essential
+        - curl
+    - name: install mesos, marathon, docker, chronos and zookeeper (as a transient dependency of mesos)
+      apt: name={{item}} state=latest  update_cache=true force=true
+      with_items:
+        - mesos
+        - marathon
+        - lxc-docker
+        - chronos
     - name: configure zookeeper id
-      shell: sudo -u zookeeper zookeeper-server-initialize --myid=1 creates=/var/lib/zookeeper/myid
-    - name: install mesos, marathon, chronos and docker packages
-      yum: pkg=device-mapper-event-libs,mesos,marathon,chronos,docker state=latest
+      template: src=templates/zookeeper_myid.j2 dest=/var/lib/zookeeper/myid owner=zookeeper group=zookeeper
+    - name: configure zookeeper url
+      template: src=templates/zoo.cfg.j2 dest=/etc/zookeeper/conf/zoo.cfg owner=zookeeper group=zookeeper
+      tags: zookeeper
+    - name: configure mesos zookeeper nodes
+      template: src=templates/zk.j2 dest=/etc/mesos/zk owner=zookeeper group=zookeeper
+      tags: zookeeper
+    - name: Assures mesos config directories exists
+      file: path={{item}} state=directory
+      with_items:
+        - /etc/mesos-slave
+        - /etc/mesos-master
+        - /etc/marathon
+    - name: configure marathon and mesos hostnames
+      template: src=templates/hostname.j2 dest={{item}} 
+      with_items:
+        - /etc/mesos-slave/hostname
+        - /etc/mesos-master/hostname
+        - /etc/marathon/hostname
+    - name: configure mesos master quorum
+      template: src=templates/quorum.j2 dest=/etc/mesos-master/quorum owner=zookeeper group=zookeeper 
+      tags: zookeeper
     - name: configure mesos to use containers
       shell: echo 'docker,mesos' | sudo tee /etc/mesos-slave/containerizers
-    - name: start up zookeeper
-      service: name=zookeeper-server state=started enabled=yes
-    - name: start up the mesos master
-      service: name=mesos-master state=started enabled=yes
-    - name: make sure mesos-slave is running
-      service: name=mesos-slave state=started enabled=yes
-    - name: start marathon
-      service: name=marathon state=started enabled=yes
-    - name: start chronos
-      service: name=chronos state=started enabled=yes
-    - name: start docker
-      service: name=docker state=started enabled=yes
-    - name: install go and dns tools
-      yum: pkg=golang,git,bind-utils state=latest
+    - name: start up mesos, marathon, chronos and zookeeper services 
+      service: name={{item}} state=started enabled=yes
+      with_items:
+        - zookeeper
+        - mesos-master
+        - mesos-slave
+        - marathon
+        - chronos
+        - docker 
+    - name: copy files to admin directory
+      copy: src={{item}} owner=admin group=admin dest=/home/admin mode=700
+      with_items:
+        - mesos-dns
+        - marathon
     - name: build mesos-dns
-      shell: sudo -u vagrant sh /vagrant/mesos-dns/installdns.sh
+      shell: sudo -u admin sh /home/admin/mesos-dns/installdns.sh
     - name: start marathon services
-      shell: cd /vagrant/marathon && make deploy
+      shell: cd /home/admin/marathon && sudo -u admin make deploy
     - name: update the rsyslog config
       template: src=templates/syslog_mesos.conf.j2 dest=/etc/rsyslog.d/mesos.conf
     - name: restart rsyslog
       service: name=rsyslog state=restarted enabled=yes
 
 - hosts: nodes
-  remote_user: vagrant
+  remote_user: admin
   sudo: yes
   tasks:
-      - name: update the hosts file
-        template: src=templates/hosts.j2 dest=/etc/hosts
-      - name: install the mesosphere yum repo
-        yum: name=http://repos.mesosphere.io/el/7/noarch/RPMS/mesosphere-el-repo-7-1.noarch.rpm state=present
-      - name: install the mesos and docker packages
-        yum: pkg=device-mapper-event-libs,mesos,docker state=latest
-      - name: configure containerizers
-        shell: echo 'docker,mesos' | sudo tee /etc/mesos-slave/containerizers
-      - name: set the zookeeper master
-        shell: sed -i -e 's/localhost/192.168.33.10/g' /etc/mesos/zk
-      - name: make sure mesos-slave is running
-        service: name=mesos-slave state=started enabled=yes
-      - name: start docker
-        service: name=docker state=started enabled=yes
-      - name: update the rsyslog config
-        template: src=templates/syslog_mesos.conf.j2 dest=/etc/rsyslog.d/mesos.conf
-      - name: restart rsyslog
-        service: name=rsyslog state=restarted enabled=yes
+    - name: install mesosphere apt key
+      apt_key: id=E56151BF  keyserver=keyserver.ubuntu.com state=present
+    - name: install docker apt key 
+      apt_key: id=36A1D7869245C8950F966E92D8576A8BA88D21E9 keyserver=keyserver.ubuntu.com state=present
+    - name: install the mesosphere and docker repos apt repo
+      apt_repository: repo='deb {{item}}' state=present
+      with_items:
+        - http://repos.mesosphere.io/debian wheezy main
+        - http://get.docker.io/ubuntu docker main
+    - name: install go and dns tools
+      apt: name={{item}} state=latest
+      with_items:
+        - golang
+        - git
+        - dnsutils
+        - build-essential
+        - curl
+    - name: install mesos, marathon, docker, chronos and zookeeper (as a transient dependency of mesos)
+      apt: name={{item}} state=latest  update_cache=true force=true
+      with_items:
+        - mesos
+        - lxc-docker
+    - name: configure zookeeper quorum
+      template: src=templates/zoo.cfg.j2 dest=/etc/zookeeper/conf/zoo.cfg owner=zookeeper group=zookeeper
+      tags: zookeeper
+    - name: configure mesos zookeeper nodes
+      template: src=templates/zk.j2 dest=/etc/mesos/zk owner=zookeeper group=zookeeper
+      tags: zookeeper
+    - name: Assures {{item}} dir exists
+      file: path=/etc/mesos-slave state=directory
+      with_items:
+        - /etc/mesos-slave
+    - name: configure marathon and mesos hostnames
+      template: src=templates/hostname.j2 dest=/etc/mesos-slave/hostname
+    - name: configure mesos to use containers
+      shell: echo 'docker,mesos' | sudo tee /etc/mesos-slave/containerizers
+    - name: make sure mesos-slave is running
+      service: name=mesos-slave state=started enabled=yes
+    - name: start docker
+      service: name=docker state=started enabled=yes
+    - name: copy files to admin directory
+      copy: src={{item}} owner=admin group=admin dest=/home/admin mode=700
+      with_items:
+        - mesos-dns
+        - marathon
+    - name: build mesos-dns
+      shell: sudo -u admin sh /home/admin/mesos-dns/installdns.sh
+    - name: start marathon services
+      shell: cd /home/admin/marathon && sudo -u admin make deploy
+    - name: update the rsyslog config
+      template: src=templates/syslog_mesos.conf.j2 dest=/etc/rsyslog.d/mesos.conf
+    - name: restart rsyslog
+      service: name=rsyslog state=restarted enabled=yes

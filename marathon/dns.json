@@ -6,6 +6,6 @@
   "instances": 1,
   "ports": [4000],
   "constraints": [
-        ["hostname", "CLUSTER", "node1"]
+        ["hostname", "CLUSTER", "mesos1"]
     ]
 }

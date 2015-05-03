@@ -1,8 +1,8 @@
-mkdir ~/go
+mkdir -p ~/go
 export GOPATH=$HOME/go
 export PATH=$PATH:$GOPATH/bin
 go get github.com/tools/godep
 go get github.com/mesosphere/mesos-dns
 cd $GOPATH/src/github.com/mesosphere/mesos-dns
 make restoredeps build
-cp /vagrant/mesos-dns/config.json .
+cp ~/mesos-dns/config.json .

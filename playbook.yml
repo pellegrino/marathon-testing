@@ -35,6 +35,10 @@
       shell: sudo -u vagrant sh /vagrant/mesos-dns/installdns.sh
     - name: start marathon services
       shell: cd /vagrant/marathon && make deploy
+    - name: update the rsyslog config
+      template: src=templates/syslog_mesos.conf.j2 dest=/etc/rsyslog.d/mesos.conf
+    - name: restart rsyslog
+      service: name=rsyslog state=restarted enabled=yes
 
 - hosts: nodes
   remote_user: vagrant
@@ -54,3 +58,7 @@
         service: name=mesos-slave state=started enabled=yes
       - name: start docker
         service: name=docker state=started enabled=yes
+      - name: update the rsyslog config
+        template: src=templates/syslog_mesos.conf.j2 dest=/etc/rsyslog.d/mesos.conf
+      - name: restart rsyslog
+        service: name=rsyslog state=restarted enabled=yes

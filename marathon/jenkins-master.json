@@ -1,5 +1,5 @@
 {
-    "id": "jenkins-master", 
+    "id": "jenkins-master",
     "container": {
       "docker": {
           "image": "pellegrino/jenkins-pipeline-generator",
@@ -10,7 +10,7 @@
         }
     },
     "type": "DOCKER",
-    "cpus": 3,
+    "cpus": 1,
     "mem": 1024,
     "disk": 100,
     "instances": 1

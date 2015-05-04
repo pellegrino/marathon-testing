@@ -1,0 +1,30 @@
+{
+    "id": "trackmetadata",
+    "type": "DOCKER",
+    "cpus": 2,
+    "mem": 1024,
+    "disk": 0,
+    "instances": 4,
+    "container": {
+      "docker": {
+          "image": "docker.dev.s-cloud.net/trackmetadata:release",
+          "network": "BRIDGE",
+          "portMappings": [
+              { "containerPort": 5000, "hostPort": 0, "protocol": "tcp" },
+              { "containerPort": 5001, "hostPort": 0, "protocol": "tcp" }
+          ],
+          "forcePullImage": true
+        },
+        "cmd": "bash -lex -c 'cd /srv/trackmetadata && ./configure production && ./api'"
+    },
+    "healthChecks": [
+    {
+      "protocol": "HTTP",
+      "portIndex": 0,
+      "path": "/-/",
+      "gracePeriodSeconds": 5,
+      "intervalSeconds": 20,
+      "maxConsecutiveFailures": 3
+    }
+  ]
+}

@@ -1,12 +1,11 @@
 ---
 - hosts: master
-  remote_user: admin
-  sudo: yes
   tasks:
-    - name: install mesosphere apt key
-      apt_key: id=E56151BF  keyserver=keyserver.ubuntu.com state=present
-    - name: install docker apt key 
-      apt_key: id=36A1D7869245C8950F966E92D8576A8BA88D21E9 keyserver=keyserver.ubuntu.com state=present
+    - name: install mesosphere and docker apt key
+      apt_key: id={{item}} keyserver=keyserver.ubuntu.com state=present
+      with_items:
+        - E56151BF
+        - 36A1D7869245C8950F966E92D8576A8BA88D21E9
     - name: install the mesosphere and docker repos apt repo
       apt_repository: repo='deb {{item}}' state=present
       with_items:
@@ -20,61 +19,66 @@
         - dnsutils
         - build-essential
         - curl
+        - sudo
     - name: install mesos, marathon, docker, chronos and zookeeper (as a transient dependency of mesos)
-      apt: name={{item}} state=latest  update_cache=true force=true
+      apt: name={{item}} state=latest update_cache=true force=true
       with_items:
         - mesos
         - marathon
         - lxc-docker
         - chronos
-    - name: configure zookeeper id
-      template: src=templates/zookeeper_myid.j2 dest=/var/lib/zookeeper/myid owner=zookeeper group=zookeeper
-    - name: configure zookeeper url
-      template: src=templates/zoo.cfg.j2 dest=/etc/zookeeper/conf/zoo.cfg owner=zookeeper group=zookeeper
-    - name: configure mesos zookeeper nodes
-      template: src=templates/zk.j2 dest=/etc/mesos/zk
     - name: Assures mesos config directories exists
       file: path={{item}} state=directory
       with_items:
         - /etc/mesos-slave
         - /etc/mesos-master
-        - /etc/marathon
+        - /etc/marathon/conf
+    - name: configure zookeeper id
+      template: src=templates/zookeeper_myid.j2 dest=/var/lib/zookeeper/myid
+      tags: config
+    - name: configure zookeeper url
+      template: src=templates/zoo.cfg.j2 dest=/etc/zookeeper/conf/zoo.cfg
+      tags: config
+    - name: configure mesos zookeeper nodes
+      template: src=templates/zk.j2 dest=/etc/mesos/zk 
+      tags: config
     - name: configure marathon and mesos hostnames
       template: src=templates/hostname.j2 dest={{item}} 
       with_items:
         - /etc/mesos-slave/hostname
         - /etc/mesos-master/hostname
-        - /etc/marathon/hostname
+        - /etc/marathon/conf/hostname
+      tags: config
     - name: configure mesos master quorum
       template: src=templates/quorum.j2 dest=/etc/mesos-master/quorum
+      tags: config
     - name: configure mesos to use containers
-      shell: echo 'docker,mesos' | sudo tee /etc/mesos-slave/containerizers
+      template: src=templates/containerizers dest=/etc/mesos-slave/containerizers
+      tags: config
     - name: start up mesos, marathon, chronos and zookeeper services 
       service: name={{item}} state=started enabled=yes
       with_items:
         - zookeeper
+        - docker 
         - mesos-master
+        - chronos
         - mesos-slave
         - marathon
-        - chronos
-        - docker 
-    - name: copy files to admin directory
-      copy: src={{item}} owner=admin group=admin dest=/home/admin mode=700
-      with_items:
-        - mesos-dns
-        - marathon
-    - name: build mesos-dns
-      shell: sudo -u admin sh /home/admin/mesos-dns/installdns.sh
-    - name: start marathon services
-      shell: cd /home/admin/marathon && sudo -u admin make deploy
+    #- name: copy files to root directory
+    #  copy: src={{item}} owner=root group=root dest=/root mode=700
+    #  with_items:
+    #    - mesos-dns
+    #    - marathon
+    #- name: build mesos-dns
+    #  shell: sudo -u root sh /root/mesos-dns/installdns.sh
+    #- name: start marathon services
+    #  shell: cd /root/marathon && sudo -u root make deploy
     - name: update the rsyslog config
       template: src=templates/syslog_mesos.conf.j2 dest=/etc/rsyslog.d/mesos.conf
     - name: restart rsyslog
       service: name=rsyslog state=restarted enabled=yes
 
 - hosts: nodes
-  remote_user: admin
-  sudo: yes
   tasks:
     - name: install mesosphere apt key
       apt_key: id=E56151BF  keyserver=keyserver.ubuntu.com state=present
@@ -93,36 +97,35 @@
         - dnsutils
         - build-essential
         - curl
+        - sudo 
     - name: install mesos, marathon, docker, chronos and zookeeper (as a transient dependency of mesos)
       apt: name={{item}} state=latest  update_cache=true force=true
       with_items:
         - mesos
         - lxc-docker
     - name: configure zookeeper quorum
-      template: src=templates/zoo.cfg.j2 dest=/etc/zookeeper/conf/zoo.cfg owner=zookeeper group=zookeeper
+      template: src=templates/zoo.cfg.j2 dest=/etc/zookeeper/conf/zoo.cfg
     - name: configure mesos zookeeper nodes
-      template: src=templates/zk.j2 dest=/etc/mesos/zk owner=zookeeper group=zookeeper
-    - name: Assures {{item}} dir exists
+      template: src=templates/zk.j2 dest=/etc/mesos/zk
+    - name: Assures mesos-slave directory exists
       file: path=/etc/mesos-slave state=directory
-      with_items:
-        - /etc/mesos-slave
     - name: configure marathon and mesos hostnames
       template: src=templates/hostname.j2 dest=/etc/mesos-slave/hostname
     - name: configure mesos to use containers
-      shell: echo 'docker,mesos' | sudo tee /etc/mesos-slave/containerizers
+      template: src=templates/containerizers dest=/etc/mesos-slave/containerizers
     - name: make sure mesos-slave is running
       service: name=mesos-slave state=started enabled=yes
     - name: start docker
       service: name=docker state=started enabled=yes
-    - name: copy files to admin directory
-      copy: src={{item}} owner=admin group=admin dest=/home/admin mode=700
-      with_items:
-        - mesos-dns
-        - marathon
-    - name: build mesos-dns
-      shell: sudo -u admin sh /home/admin/mesos-dns/installdns.sh
-    - name: start marathon services
-      shell: cd /home/admin/marathon && sudo -u admin make deploy
+    # - name: copy files to root directory
+    #   copy: src={{item}} owner=root group=root dest=/root mode=700
+    #   with_items:
+    #     - mesos-dns
+    #     - marathon
+    # - name: build mesos-dns
+    #   shell: sudo -u root sh /root/mesos-dns/installdns.sh
+   # - name: start marathon services
+   #   shell: cd /root/marathon && sudo -u root make deploy
     - name: update the rsyslog config
       template: src=templates/syslog_mesos.conf.j2 dest=/etc/rsyslog.d/mesos.conf
     - name: restart rsyslog

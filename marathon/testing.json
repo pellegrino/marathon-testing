@@ -1,0 +1,25 @@
+{
+  "id": "libmesos-testing",
+  "type": "DOCKER",
+  "cpus": "0.5",
+  "mem": "128",
+  "disk": 0,
+  "instances": 4,
+  "container": {
+    "docker": {
+        "image": "libmesos/ubuntu",
+        "network": "BRIDGE"
+      },
+      "cmd": "while sleep 10; do date -u +%T; done"
+  },
+  "healthChecks": [
+    {
+      "protocol": "HTTP",
+      "portIndex": 0,
+      "path": "/-/",
+      "gracePeriodSeconds": 5,
+      "intervalSeconds": 20,
+      "maxConsecutiveFailures": 3
+    }
+  ]
+}

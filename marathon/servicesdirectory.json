@@ -1,0 +1,38 @@
+{
+    "cmd": "env && /srv/servicesdirectory/configure production && /srv/servicesdirectory/web",
+    "container": {
+        "docker": {
+            "image": "docker.dev.s-cloud.net/servicesdirectory:release",
+            "network": "BRIDGE",
+            "portMappings": [
+              { 
+                "containerPort": 5000, 
+                "hostPort": 0, 
+                "servicePort": 0, 
+                "protocol": "tcp" 
+              },
+              {
+                "containerPort": 5001, 
+                "hostPort": 0, 
+                "servicePort": 0, 
+                "protocol": "tcp" 
+              }
+            ]
+        },
+        "type": "DOCKER"
+    },
+    "cpus": 0.25,
+    "id": "servicesdirectory",
+    "instances": 1,
+    "mem": 1024.0,
+    "healthChecks": [
+        {
+          "protocol": "HTTP",
+          "portIndex": 0,
+          "path": "/-/health",
+          "gracePeriodSeconds": 5,
+          "intervalSeconds": 20,
+          "maxConsecutiveFailures": 3
+        }
+  ]
+}

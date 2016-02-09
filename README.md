@@ -1,6 +1,7 @@
+
 # Marathon testing
 
-Following the tutorial http://docs.mesosphere.com/intro-course/ex16.html.
+Based on the tutorial http://docs.mesosphere.com/intro-course/ex16.html, but using ubuntu 14.04 instead of centos. 
 
 `vagrant up` - uses ansible to create a mesos cluster with a few services configured. 
 
